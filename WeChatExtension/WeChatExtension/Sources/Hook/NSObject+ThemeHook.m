@@ -33,7 +33,6 @@
         hookMethod(objc_getClass("MMComposeInputViewController"), @selector(viewDidLoad), [self class], @selector(hook_ComposeInputViewControllerViewDidLoad));
         hookMethod(objc_getClass("MMChatMessageViewController"), @selector(viewDidLoad), [self class], @selector(hook_ChatMessageViewControllerViewDidLoad));
         hookMethod(objc_getClass("NSScrollView"), @selector(initWithFrame:), [self class], @selector(hook_scrollViewInitWithFrame:));
-        hookMethod(objc_getClass("MMSidebarRowView"), @selector(initWithFrame:), [self class], @selector(hook_sideBarViewInitWithFrame:));
         hookMethod(objc_getClass("MMLoginWaitingConfirmViewController"), @selector(viewDidAppear), [self class], @selector(hook_loginWaitingViewDidLoad));
         hookMethod(objc_getClass("MMLoginQRCodeViewController"), @selector(viewDidLoad), [self class], @selector(hook_QRCodeViewDidLoad));
         //    hookMethod(objc_getClass("MMTextField"), @selector(setAttributedStringValue:), [self class], @selector(hook_setAttributedStringValue:));
@@ -56,9 +55,46 @@
         hookClassMethod(objc_getClass("MMComposeTextView"), @selector(preprocessTextAttributes:), [self class], @selector(hook_preprocessTextAttributes:));
         hookMethod(objc_getClass("MMMessageCellView"), @selector(updateGroupChatNickName), [self class], @selector(hook_updateGroupChatNickName));
         hookMethod(objc_getClass("MMCTTextView"), @selector(setAttributedString:), [self class], @selector(hook_textFieldSetTextColor:));
+        hookMethod(objc_getClass("MMSessionPickerListRowView"), @selector(drawRect:), [self class], @selector(hook_pickerListDrawRect:));
+        hookMethod(objc_getClass("MMChatDetailMemberRowView"), @selector(avatarImageView), [self class], @selector(hook_chatDetailAvatarImageView));
     }
+        
 }
 
+- (NSImageView *)hook_chatDetailAvatarImageView
+{
+    if ([TKWeChatPluginConfig sharedConfig].darkMode) {
+        @try {
+            MMChatDetailMemberRowView *row = (MMChatDetailMemberRowView *)self;
+            NSTextFieldCell *cell = [row.nameField valueForKey:@"cell"];
+            NSAttributedString *originalText = [cell valueForKey:@"contents"];
+            NSMutableAttributedString *darkModelChatName = [[NSMutableAttributedString alloc] initWithString:originalText.string attributes:@{NSForegroundColorAttributeName : kMainTextColor, NSFontAttributeName : [NSFont systemFontOfSize:14]}];
+            [row.nameField setAttributedStringValue:darkModelChatName];
+        } @catch (NSException *exception) {
+            
+        }
+    }
+
+    return [self hook_chatDetailAvatarImageView];
+}
+
+- (void)hook_pickerListDrawRect:(CGRect)arg1
+{
+    [self hook_pickerListDrawRect:arg1];
+    
+    if ([TKWeChatPluginConfig sharedConfig].darkMode) {
+        @try {
+            MMSessionPickerListRowView *row = (MMSessionPickerListRowView *)self;
+            NSTextFieldCell *cell = [row.sessionNameField valueForKey:@"cell"];
+            NSAttributedString *originalText = [cell valueForKey:@"contents"];
+            NSMutableAttributedString *darkModelChatName = [[NSMutableAttributedString alloc] initWithString:originalText.string attributes:@{NSForegroundColorAttributeName : kMainTextColor, NSFontAttributeName : [NSFont systemFontOfSize:14]}];
+            [row.sessionNameField setAttributedStringValue:darkModelChatName];
+        } @catch (NSException *exception) {
+            
+        }
+    }
+
+}
 
 - (void)hook_textFieldSetTextColor:(NSAttributedString *)arg1
 {
@@ -215,6 +251,16 @@
     [self hook_windowDidLoad];
     NSWindowController *window = (NSWindowController *)self;
     [[YMThemeMgr shareInstance] changeTheme:window.window.contentView];
+    
+    if ([self isKindOfClass:objc_getClass("MMGlobalChatManagerWindowController")]) {
+        MMGlobalChatManagerWindowController *window = (MMGlobalChatManagerWindowController *)self;
+        for (NSView *sub in window.window.contentView.subviews) {
+            if (![sub isKindOfClass:objc_getClass("MMCustomSearchField")]) {
+               [[YMThemeMgr shareInstance] changeTheme:sub];
+            }
+        }
+    }
+    
 }
 
 - (void)hook_showWindow:(nullable id)sender
@@ -229,11 +275,15 @@
     [self hook_updateNickName];
     MMChatsTableCellView *cell = (MMChatsTableCellView *)self;
     NSAttributedString *str = cell.nickName.attributedStringValue;
-    NSMutableAttributedString *returnValue = [[NSMutableAttributedString alloc] initWithString:str.string attributes:@{NSForegroundColorAttributeName :kRGBColor(255, 255, 255, 1.0), NSFontAttributeName : [NSFont systemFontOfSize:14]}];
+    NSRange range = NSMakeRange(0, str.length);
+    NSDictionary *attributes = [str attributesAtIndex:0 effectiveRange:&range];
+    NSFont *attributesFont = [attributes valueForKey:@"NSFont"];
+    NSMutableAttributedString *returnValue = [[NSMutableAttributedString alloc] initWithString:str.string attributes:@{NSForegroundColorAttributeName :kRGBColor(255, 255, 255, 1.0), NSFontAttributeName : attributesFont}];
     cell.nickName.attributedStringValue = returnValue;
     
     if ([TKWeChatPluginConfig sharedConfig].darkMode) {
         [[YMThemeMgr shareInstance] changeTheme:cell color:kRGBColor(33, 48, 64, 1.0)];
+        cell.muteIndicator.normalColor = [NSColor redColor];
     }
 }
 
@@ -241,7 +291,7 @@
 {
     [self hook_mouseDown:arg1];
     MMChatsTableCellView *cell = (MMChatsTableCellView *)self;
-    
+
     NSColor *highColor = nil;
     if (cell.selected) {
         highColor = kRGBColor(147, 148, 248, 0.5);
@@ -314,12 +364,6 @@
     textField.backgroundColor = kMainBackgroundColor;
 }
 
-- (instancetype)hook_sideBarViewInitWithFrame:(NSRect)frameRect {
-    MMSidebarRowView *view = (MMSidebarRowView *)self;
-    [[YMThemeMgr shareInstance] changeTheme:view.containerView];
-    return [self hook_sideBarViewInitWithFrame:frameRect];
-}
-
 - (instancetype)hook_scrollViewInitWithFrame:(NSRect)frameRect {
     NSScrollView *view = (NSScrollView *)self;
     [[YMThemeMgr shareInstance] changeTheme:view.contentView];
@@ -339,7 +383,9 @@
         for (NSView *sub in controller.view.subviews) {
             if ([sub isKindOfClass:objc_getClass("SVGButton")]) {
                 NSButton *button = (NSButton *)sub;
+                NSImage *tempImage = button.image;
                 button.image = button.alternateImage;
+                button.alternateImage = tempImage;
                 button.alphaValue = 0.5;
             }
         }
@@ -348,6 +394,14 @@
 
 - (void)hook_initWithFrame:(NSView *)view {
     [self hook_initWithFrame:view];
+    
+    if ([view isKindOfClass:[objc_getClass("MMSystemMessageCellView") class]]) {
+        return;
+    }
+    
+    if ([view isKindOfClass:[objc_getClass("NSTouchBarView") class]]) {
+        return;
+    }
     
     if ([view isKindOfClass:[objc_getClass("NSButtonImageView") class]]) {
         return;
@@ -386,7 +440,7 @@
     if ([view isKindOfClass:[objc_getClass("NewNoteContentView") class]]) {
         [[YMThemeMgr shareInstance] changeTheme:view];
     }
-    
+
     #pragma mark - view
     if ([view isKindOfClass:[objc_getClass("MMSessionPickerListGroupRowView") class]]) {
         for (NSView *sub in view.subviews) {
@@ -396,19 +450,27 @@
         }
     }
     
-    if ([view isKindOfClass:[objc_getClass("MMSearchTableSectionHeaderView") class]]) {
-        for (NSView *sub in view.subviews) {
-            if (![sub isKindOfClass:[NSTextField class]]) {
-                [[YMThemeMgr shareInstance] changeTheme:sub];
-            }
-        }
-    }
+//    if ([view isKindOfClass:[objc_getClass("MMSearchTableSectionHeaderView") class]]) {
+//        for (NSView *sub in view.subviews) {
+//            if (![sub isKindOfClass:[NSTextField class]]) {
+//                [[YMThemeMgr shareInstance] changeTheme:sub];
+//            }
+//        }
+//    }
     
     if ([view isKindOfClass:[objc_getClass("MMOutlineButton") class]]) {
         [[YMThemeMgr shareInstance] changeTheme:view];
     }
     
     if ([view isKindOfClass:[objc_getClass("JNWClipView") class]]) {
+        [[YMThemeMgr shareInstance] changeTheme:view];
+    }
+    
+    if ([view isKindOfClass:[objc_getClass("_NSBrowserFlippedClipView") class]]) {
+        [[YMThemeMgr shareInstance] changeTheme:view];
+    }
+    
+    if ([view isKindOfClass:[objc_getClass("NSClipView") class]]) {
         [[YMThemeMgr shareInstance] changeTheme:view];
     }
     
@@ -450,13 +512,16 @@
     
     //公众号
     if ([view isKindOfClass:[objc_getClass("MMDragEventView") class]]) {
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-            for (NSView *effect in view.subviews) {
-                if ([effect isKindOfClass:NSVisualEffectView.class]) {
-                    for (NSView *effectSub in effect.subviews) {
-                        if (![effectSub isKindOfClass:NSTextField.class]) {
-                            [[YMThemeMgr shareInstance] changeTheme:effectSub];
-                            break;
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if (![view.superview isKindOfClass:objc_getClass("MMQLPreviewView")]) {
+                [[YMThemeMgr shareInstance] changeTheme:view];
+                for (NSView *effect in view.subviews) {
+                    if ([effect isKindOfClass:NSVisualEffectView.class]) {
+                        for (NSView *effectSub in effect.subviews) {
+                            if (![effectSub isKindOfClass:NSTextField.class]) {
+                                [[YMThemeMgr shareInstance] changeTheme:effectSub];
+                                break;
+                            }
                         }
                     }
                 }
@@ -503,16 +568,21 @@
          return;
     }
     
+    //Fix: TouchBar在粉色模式下会变色
+    if ([self isKindOfClass:objc_getClass("NSCandidateListViewController")]) {
+        return;
+    }
+    
+    if ([self isKindOfClass:objc_getClass("NSTouchBarViewController")]) {
+        return;
+    }
+    
+    //Fix
+    if ([NSStringFromClass(self.class) containsString:@"FI_"]) {
+        return;
+    }
+    
     NSViewController *viewController = (NSViewController *)self;
     [[YMThemeMgr shareInstance] changeTheme:viewController.view];
-    
-    if ([viewController isKindOfClass:objc_getClass("MMSearchViewController")]) {
-        for (NSView *sub in viewController.view.subviews) {
-            if ([sub isKindOfClass:objc_getClass("RFOverlayScrollView")]) {
-                [[YMThemeMgr shareInstance] changeTheme:sub];
-                break;
-            }
-        }
-    }
 }
 @end
