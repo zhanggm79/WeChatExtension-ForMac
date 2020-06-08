@@ -179,10 +179,18 @@ FOUNDATION_EXPORT const unsigned char WeChatPluginVersionString[];
 
 @end
 
+@interface MMHandoffButton : NSButton
+
+@end
+
 @interface MMMainViewController : NSViewController
 @property(retain, nonatomic) MMChatsViewController *chatsViewController;
+@property(nonatomic) __weak MMHandoffButton *handoffButton; // @synthesize handoffButton=_handoffButton;
 - (void)viewDidLoad;
 - (void)dealloc;
+- (void)onReceiveNewHandoff:(id)arg1;
+- (void)onUpdateHandoffExpt:(BOOL)arg1;
+- (void)showHandoffView:(id)arg1;
 @end
 
 @interface WeChat : NSObject
@@ -196,6 +204,7 @@ FOUNDATION_EXPORT const unsigned char WeChatPluginVersionString[];
 - (void)onAuthOK:(BOOL)arg1;
 - (void)checkForUpdatesInBackground;
 - (void)setupCheckUpdateIfNeeded;
+- (BOOL)isTaskProgress;
 @end
 
 @interface ContactStorage : NSObject
@@ -213,6 +222,21 @@ FOUNDATION_EXPORT const unsigned char WeChatPluginVersionString[];
 - (id)GetGroupContactList:(id)arg1 ContactType:(id)arg2;
 @end
 
+@interface GroupMember : NSObject
+@property(copy, nonatomic) NSString *m_nsSignature; // @synthesize m_nsSignature=_m_nsSignature;
+@property(copy, nonatomic) NSString *m_nsCity; // @synthesize m_nsCity=_m_nsCity;
+@property(copy, nonatomic) NSString *m_nsProvince; // @synthesize m_nsProvince=_m_nsProvince;
+@property(copy, nonatomic) NSString *m_nsCountry; // @synthesize m_nsCountry=_m_nsCountry;
+@property(copy, nonatomic) NSString *m_nsRemarkFullPY; // @synthesize m_nsRemarkFullPY=_m_nsRemarkFullPY;
+@property(copy, nonatomic) NSString *m_nsRemarkShortPY; // @synthesize m_nsRemarkShortPY=_m_nsRemarkShortPY;
+@property(copy, nonatomic) NSString *m_nsRemark; // @synthesize m_nsRemark=_m_nsRemark;
+@property(nonatomic) unsigned int m_uiSex; // @synthesize m_uiSex=_m_uiSex;
+@property(copy, nonatomic) NSString *m_nsFullPY; // @synthesize m_nsFullPY=_m_nsFullPY;
+@property(copy, nonatomic) NSString *m_nsNickName; // @synthesize m_nsNickName=_m_nsNickName;
+@property(nonatomic) unsigned int m_uiMemberStatus; // @synthesize m_uiMemberStatus=_m_uiMemberStatus;
+@property(copy, nonatomic) NSString *m_nsMemberName; // @synthesize m_nsMemberName=_m_nsMemberName;
+@end
+
 @interface GroupStorage : NSObject
 {
     NSMutableDictionary *m_dictGroupContacts;
@@ -223,6 +247,12 @@ FOUNDATION_EXPORT const unsigned char WeChatPluginVersionString[];
 - (BOOL)IsGroupContactExist:(id)arg1;
 - (BOOL)IsGroupMemberContactExist:(id)arg1;
 - (id)GetGroupContactList:(unsigned int)arg1 ContactType:(unsigned int)arg2;
+- (BOOL)AddGroupMembers:(id)arg1 withGroupUserName:(id)arg2 completion:(id)arg3;
+- (void)CreateGroupChatWithTopic:(id)arg1 groupMembers:(id)arg2 completion:(id)arg3;
+- (void)addChatMemberNeedVerifyMsg:(id)arg1 ContactList:(id)arg2;
+- (BOOL)QuitGroup:(id)arg1 completion:(id)arg2;
+- (BOOL)UIQuitGroup:(id)arg1;
+- (BOOL)UIQuitGroup:(id)arg1 withConfirm:(BOOL)arg2 completion:(id)arg3;
 @end
 
 @interface ChatRoomData : NSObject
@@ -762,7 +792,7 @@ forHTTPHeaderField:(NSString *)field;
 @end
 
 @interface MMChatMemberListViewController : NSViewController
-
+- (void)startAGroupChatWithSelectedUserNames:(id)arg1;
 @end
 
 @interface MMContactProfileController : NSViewController
@@ -775,6 +805,7 @@ forHTTPHeaderField:(NSString *)field;
 
 @interface MMSearchChatLogTableCellView : NSTableCellView
 @property (nonatomic, strong) NSColor *backgroundColor;
+- (void)setSelected:(BOOL)arg1;
 @end
 
 @interface MMChatInfoView : NSView
@@ -824,3 +855,8 @@ forHTTPHeaderField:(NSString *)field;
 @interface MMGlobalChatManagerWindowController : NSWindowController
 
 @end
+
+@interface WeChatApplication : NSApplication
+- (BOOL)isMiniProgramProcess;
+@end
+
