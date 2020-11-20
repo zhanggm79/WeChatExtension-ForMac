@@ -15,16 +15,16 @@
 	<key>CFBundlePackageType</key>
 	<string>FMWK</string>
 	<key>CFBundleShortVersionString</key>
-	<string>2.5.8</string>
+	<string>2.7.0</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>NSHumanReadableCopyright</key>
-	<string>Copyright © 2017年 WeChatExtension. All rights reserved.</string>
+	<string>Copyright © 2019年 WeChatExtension. All rights reserved.</string>
 	<key>NSPrincipalClass</key>
 	<string></string>
 	<key>showUpdateWindow</key>
 	<true/>
 	<key>versionInfo</key>
-	<string>v2.5.8(2020-06-03):\n👉🏻  僵尸粉检测，检测谁把你删了（对方无感知）. \n</string>
+	<string>v2.7.0(2020-10-31):\n👉🏻  修复清除空会话失效\n👉🏻  优化置底、公众号浏览\n👉🏻  新增一键卸载小助手\n👉🏻  新增关闭皮肤选项\n👉🏻  新增群员监控、拒收群消息\n</string>
 </dict>
 </plist>
